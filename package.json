@@ -1,0 +1,6 @@
+{
+  "name": "bolt-advisor",
+  "version": "1.0.0",
+  "description": "クレーン取付ボルト選定ツール",
+  "private": true
+}

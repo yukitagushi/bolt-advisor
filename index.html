@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クレーン取付ボルト選定ツール</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --primary: #1d1d1f;
+      --accent: #0071e3;
+      --accent-hover: #0077ED;
+      --border: #d2d2d7;
+      --muted: #6e6e73;
+      --success: #34c759;
+      --warning: #ff9500;
+      --red: #ff3b30;
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+      background: var(--bg);
+      color: var(--primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+    }
+
+    header {
+      text-align: center;
+      padding: 32px 0 24px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 15px;
+      margin-top: 6px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    input, select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+    }
+
+    .unit { font-size: 12px; color: var(--muted); }
+
+    .bolt-side {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .side-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .side-box h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .side-box .form-group { margin-bottom: 8px; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 20px;
+    }
+
+    .btn:hover { background: var(--accent-hover); }
+    .btn:active { transform: scale(0.99); }
+
+    #results { display: none; }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .result-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--success);
+      color: #fff;
+    }
+
+    .calc-detail {
+      background: #f9f9fb;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      font-family: 'SF Mono', 'Menlo', monospace;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .summary-item {
+      text-align: center;
+      padding: 16px 8px;
+      background: #f9f9fb;
+      border-radius: 10px;
+    }
+
+    .summary-item .num {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .summary-item .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* 候補カード */
+    .side-result {
+      margin-bottom: 24px;
+    }
+
+    .side-result h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .candidates {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .candidate {
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      position: relative;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .candidate:hover {
+      border-color: var(--accent);
+      box-shadow: 0 2px 8px rgba(0,113,227,0.12);
+    }
+
+    .candidate.selected {
+      border-color: var(--accent);
+      background: #f0f7ff;
+    }
+
+    .candidate.recommended {
+      border-color: var(--success);
+    }
+
+    .candidate-tag {
+      position: absolute;
+      top: -10px;
+      left: 12px;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .candidate-tag.safe {
+      background: var(--success);
+    }
+
+    .candidate-tag.compact {
+      background: var(--warning);
+    }
+
+    .candidate-tag.only {
+      background: var(--accent);
+    }
+
+    .candidate .bolt-name {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .candidate .bolt-code {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .candidate .bolt-diff {
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: #f9f9fb;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .candidate .bolt-diff .diff-value {
+      font-weight: 700;
+    }
+
+    .candidate .bolt-diff .positive { color: var(--success); }
+    .candidate .bolt-diff .negative { color: var(--red); }
+    .candidate .bolt-diff .neutral { color: var(--muted); }
+
+    .candidate .bolt-note {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .single-candidate {
+      grid-column: 1 / -1;
+      max-width: 380px;
+    }
+
+    /* 注文リスト */
+    .order-list { margin-top: 16px; }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .order-item .info { flex: 1; }
+    .order-item .info .name { font-weight: 600; font-size: 15px; }
+    .order-item .info .spec { font-size: 13px; color: var(--muted); }
+
+    .order-item .qty {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .copy-btn {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #f0f0f5;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 0.2s;
+    }
+
+    .copy-btn:hover { background: #e5e5ea; }
+
+    .margin-note {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: #fffbf0;
+      border: 1px solid #ffe0a0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #7a5a00;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .bolt-side { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .candidates { grid-template-columns: 1fr; }
+      header h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>クレーン取付ボルト選定ツール</h1>
+      <p>寸法を入力するだけで最適なボルトを自動提案</p>
+    </header>
+
+    <!-- 基本情報 -->
+    <div class="card">
+      <h2>1. 基本情報</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>クレーン型式</label>
+          <input type="text" id="craneModel" placeholder="例: 82z">
+        </div>
+        <div class="form-group">
+          <label>シャシ</label>
+          <input type="text" id="chassis" placeholder="例: UD">
+        </div>
+        <div class="form-group">
+          <label>ボルト太さ <span class="unit">(mm)</span></label>
+          <select id="boltDiameter">
+            <option value="22">M22</option>
+            <option value="24" selected>M24</option>
+            <option value="27">M27</option>
+            <option value="30">M30</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ほしいネジ山 <span class="unit">(mm)</span></label>
+          <input type="number" id="threadLength" value="190" min="0" step="10">
+        </div>
+      </div>
+    </div>
+
+    <!-- 寸法入力 -->
+    <div class="card">
+      <h2>2. 寸法入力</h2>
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>フレームからベースまでの距離 <span class="unit">(mm)</span></label>
+        <input type="number" id="frameToBase" placeholder="例: 465" min="0" step="5">
+      </div>
+
+      <div class="bolt-side">
+        <div class="side-box">
+          <h3>アウトリガー側</h3>
+          <div class="form-group">
+            <label>高さ <span class="unit">(mm)</span></label>
+            <input type="number" id="outriggerHeight" placeholder="例: 140" min="0" step="5">
+          </div>
+          <div class="form-group">
+            <label>ボルト種別</label>
+            <select id="outriggerBoltType">
+              <option value="U">Uボルト</option>
+              <option value="I">Iボルト</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>本数</label>
+            <select id="outriggerQty">
+              <option value="2">2本</option>
+              <option value="4" selected>4本</option>
+              <option value="6">6本</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="side-box">
+          <h3>反対側</h3>
+          <div class="form-group">
+            <label>高さ <span class="unit">(mm)</span></label>
+            <input type="number" id="oppositeHeight" placeholder="例: 185" min="0" step="5">
+          </div>
+          <div class="form-group">
+            <label>ボルト種別</label>
+            <select id="oppositeBoltType">
+              <option value="U" selected>Uボルト</option>
+              <option value="I">Iボルト</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>本数</label>
+            <select id="oppositeQty">
+              <option value="2" selected>2本</option>
+              <option value="4">4本</option>
+              <option value="6">6本</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="calculate()">ボルトを選定する</button>
+    </div>
+
+    <!-- 結果 -->
+    <div id="results">
+      <div class="card">
+        <div class="result-header">
+          <h2>3. 選定結果</h2>
+          <span class="result-badge">計算完了</span>
+        </div>
+
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div id="calcDetail" class="calc-detail"></div>
+      </div>
+
+      <!-- 候補提案カード -->
+      <div class="card" id="candidatesCard">
+        <h2>ボルト候補の比較</h2>
+        <div class="margin-note">
+          ネジ山は${threadLength}mmで計算していますが、約30mmの余裕を見込んでいます。<br>
+          計算値より短いカタログ品でもネジ山余裕の範囲内なら使用可能な場合があります。
+        </div>
+        <div id="candidatesArea"></div>
+      </div>
+
+      <div class="card">
+        <h2>注文リスト</h2>
+        <div id="orderList" class="order-list"></div>
+        <button class="copy-btn" onclick="copyOrder()">注文内容をコピー</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ネジ山の余裕幅（この範囲内なら短いカタログ品も候補にできる）
+    const THREAD_MARGIN = 30;
+
+    // ボルトカタログ（PDF「クレーン取付ボルト関係一覧」より）
+    const BOLT_CATALOG = [
+      // ===== M22 =====
+      { code: '8812531', type: 'I', diameter: 22, length: 400 },
+      { code: '8812535', type: 'I', diameter: 22, length: 480 },
+      { code: '8812551', type: 'I', diameter: 22, length: 540 },
+      { code: '8812685', type: 'I', diameter: 22, length: 600 },
+      { code: '8812687', type: 'I', diameter: 22, length: 700 },
+      { code: '8812686', type: 'I', diameter: 22, length: 800 },
+      { code: '8812689', type: 'I', diameter: 22, length: 900 },
+      { code: '8812690', type: 'I', diameter: 22, length: 1000 },
+      { code: '8812850', type: 'U', diameter: 22, length: 400 },
+      { code: '8812852', type: 'U', diameter: 22, length: 450 },
+      { code: '8812994', type: 'U', diameter: 22, length: 500 },
+      { code: '8812998', type: 'U', diameter: 22, length: 600 },
+      { code: '8812997', type: 'U', diameter: 22, length: 650 },
+      { code: '8812996', type: 'U', diameter: 22, length: 700 },
+      { code: '8812990', type: 'U', diameter: 22, length: 750 },
+      { code: '8812989', type: 'U', diameter: 22, length: 800 },
+      { code: '8812987', type: 'U', diameter: 22, length: 850 },
+      // ===== M24 =====
+      { code: '8812520', type: 'I', diameter: 24, length: 550 },
+      { code: '8812563', type: 'I', diameter: 24, length: 700 },
+      { code: '8812521', type: 'I', diameter: 24, length: 800 },
+      { code: '8812522', type: 'I', diameter: 24, length: 850 },
+      { code: '8812523', type: 'I', diameter: 24, length: 900 },
+      { code: '8812525', type: 'I', diameter: 24, length: 950 },
+      { code: '8812530', type: 'I', diameter: 24, length: 1000 },
+      { code: '8812952', type: 'U', diameter: 24, length: 450 },
+      { code: '8812954', type: 'U', diameter: 24, length: 650 },
+      { code: '8812956', type: 'U', diameter: 24, length: 750 },
+      { code: '8812982', type: 'U', diameter: 24, length: 800 },
+      { code: '8812980', type: 'U', diameter: 24, length: 850 },
+      // ===== M27 =====
+      { code: '8812676', type: 'I', diameter: 27, length: 450 },
+      { code: '8812677', type: 'I', diameter: 27, length: 550 },
+      { code: '8812702', type: 'I', diameter: 27, length: 650 },
+      { code: '8812703', type: 'I', diameter: 27, length: 700 },
+      { code: 'HI023912', type: 'I', diameter: 27, length: 750 },
+      { code: '8812697', type: 'I', diameter: 27, length: 850 },
+      { code: '8812698', type: 'I', diameter: 27, length: 930 },
+      { code: '8812695', type: 'I', diameter: 27, length: 1000 },
+      { code: '8812700', type: 'I', diameter: 27, length: 1050 },
+      { code: '8812699', type: 'I', diameter: 27, length: 1100 },
+      { code: '8812901', type: 'U', diameter: 27, length: 550 },
+      { code: '8812902', type: 'U', diameter: 27, length: 600 },
+      { code: '8812991', type: 'U', diameter: 27, length: 750 },
+      { code: '8812992', type: 'U', diameter: 27, length: 850 },
+      // ===== M30 =====
+      { code: '8812714', type: 'I', diameter: 30, length: 300 },
+      { code: '8812724', type: 'I', diameter: 30, length: 500 },
+      { code: '8812725', type: 'I', diameter: 30, length: 550 },
+      { code: '8812727', type: 'I', diameter: 30, length: 650 },
+      { code: '8812733', type: 'I', diameter: 30, length: 700 },
+      { code: '8812730', type: 'I', diameter: 30, length: 800 },
+      { code: '8812748', type: 'I', diameter: 30, length: 900 },
+      { code: '8812750', type: 'I', diameter: 30, length: 1000 },
+      { code: 'HI006387', type: 'I', diameter: 30, length: 1100 },
+      { code: '8812905', type: 'U', diameter: 30, length: 600 },
+      { code: '8812907', type: 'U', diameter: 30, length: 650 },
+      { code: '8812910', type: 'U', diameter: 30, length: 800 },
+      { code: '8812995', type: 'U', diameter: 30, length: 900 },
+      { code: '8812999', type: 'U', diameter: 30, length: 1000 },
+    ];
+
+    // 付属品カタログ（品番→サイズ対応）
+    const ACCESSORIES = {
+      nut: {
+        22: '8813060', 24: '8813209', 27: '8813212', 30: '8812943'
+      },
+      washer: {
+        22: '8813451', 24: '8813475', 27: '8813496', 30: '8813472'
+      },
+      steppedWasher: {
+        22: 'HI002542', 24: 'HI002541', 27: 'HI002540', 30: 'HI002539'
+      },
+    };
+
+    /**
+     * カタログから候補を2つ返す
+     * - candidateUp:   計算値以上で最も近いカタログ品（安全策）
+     * - candidateDown: 計算値より短いが余裕30mm以内のカタログ品（節約策）
+     *
+     * 計算値920mmの場合:
+     *   candidateUp   = 950mm（+30mm、ぴったり）
+     *   candidateDown = 900mm（-20mm、余裕30mmのうち20mm食う → 残り10mm）
+     */
+    function findCandidates(type, diameter, calcLength) {
+      const catalog = BOLT_CATALOG
+        .filter(b => b.type === type && b.diameter === diameter)
+        .sort((a, b) => a.length - b.length);
+
+      if (catalog.length === 0) return { up: null, down: null };
+
+      // 計算値以上で最小のもの
+      const up = catalog.find(b => b.length >= calcLength) || null;
+
+      // 計算値より短いが、余裕（THREAD_MARGIN）の範囲内のもの
+      const belowCandidates = catalog
+        .filter(b => b.length < calcLength && (calcLength - b.length) <= THREAD_MARGIN);
+      const down = belowCandidates.length > 0
+        ? belowCandidates[belowCandidates.length - 1]  // 最も計算値に近い（最大の）もの
+        : null;
+
+      return { up, down };
+    }
+
+    // 選択状態を保持
+    let selectedBolts = { outrigger: null, opposite: null };
+
+    function selectCandidate(side, bolt) {
+      selectedBolts[side] = bolt;
+      // UIのselected状態を更新
+      document.querySelectorAll(`.candidate[data-side="${side}"]`).forEach(el => {
+        el.classList.remove('selected');
+      });
+      const target = document.querySelector(`.candidate[data-side="${side}"][data-length="${bolt.length}"]`);
+      if (target) target.classList.add('selected');
+      // 注文リストを更新
+      updateOrderList();
+    }
+
+    function renderCandidateCard(bolt, calcLength, tag, tagClass, side) {
+      const diff = bolt.length - calcLength;
+      const diffSign = diff >= 0 ? '+' : '';
+      const diffClass = diff >= 0 ? 'positive' : 'negative';
+
+      let note = '';
+      if (diff > 0) {
+        note = `計算値より ${diff}mm 長い。余裕あり、確実。`;
+      } else if (diff === 0) {
+        note = `計算値ぴったり。`;
+      } else {
+        const remaining = THREAD_MARGIN + diff; // diff is negative
+        note = `計算値より ${Math.abs(diff)}mm 短い。ネジ山余裕30mmのうち${Math.abs(diff)}mm使用、残り約${remaining}mm。`;
+      }
+
+      return `
+        <div class="candidate ${tagClass === 'safe' ? 'recommended' : ''}"
+             data-side="${side}" data-length="${bolt.length}"
+             onclick="selectCandidate('${side}', ${JSON.stringify(bolt).replace(/"/g, '&quot;')})">
+          <span class="candidate-tag ${tagClass}">${tag}</span>
+          <div class="bolt-name">M${bolt.diameter} x ${bolt.length}mm</div>
+          <div class="bolt-code">品番: ${bolt.code}</div>
+          <div class="bolt-diff">
+            計算値 ${calcLength}mm との差:
+            <span class="diff-value ${diffClass}">${diffSign}${diff}mm</span>
+          </div>
+          <div class="bolt-note">${note}</div>
+        </div>`;
+    }
+
+    function calculate() {
+      const frameToBase = parseInt(document.getElementById('frameToBase').value);
+      const outriggerHeight = parseInt(document.getElementById('outriggerHeight').value);
+      const oppositeHeight = parseInt(document.getElementById('oppositeHeight').value);
+      const threadLength = parseInt(document.getElementById('threadLength').value);
+      const boltDiameter = parseInt(document.getElementById('boltDiameter').value);
+      const outriggerType = document.getElementById('outriggerBoltType').value;
+      const oppositeType = document.getElementById('oppositeBoltType').value;
+      const outriggerQty = parseInt(document.getElementById('outriggerQty').value);
+      const oppositeQty = parseInt(document.getElementById('oppositeQty').value);
+
+      if (!frameToBase || !outriggerHeight || !oppositeHeight) {
+        alert('寸法を入力してください');
+        return;
+      }
+
+      // ===== 計算 =====
+      const outriggerBaseLength = frameToBase + outriggerHeight + threadLength;
+      const oppositeBaseLength = frameToBase + oppositeHeight + threadLength;
+
+      const outriggerCalc = outriggerType === 'I'
+        ? outriggerBaseLength + threadLength
+        : outriggerBaseLength;
+
+      const oppositeCalc = oppositeType === 'I'
+        ? oppositeBaseLength + threadLength
+        : oppositeBaseLength;
+
+      // カタログから候補を検索
+      const outriggerCandidates = findCandidates(outriggerType, boltDiameter, outriggerCalc);
+      const oppositeCandidates = findCandidates(oppositeType, boltDiameter, oppositeCalc);
+
+      // デフォルト選択: 安全策（上）を優先
+      selectedBolts.outrigger = outriggerCandidates.up || outriggerCandidates.down;
+      selectedBolts.opposite = oppositeCandidates.up || oppositeCandidates.down;
+
+      // ナット・スペーサー
+      const outriggerNuts = outriggerQty * 4;
+      const oppositeNuts = oppositeQty * 4;
+      const totalNuts = outriggerNuts + oppositeNuts;
+      const spacers = 8;
+
+      // ===== 表示 =====
+      document.getElementById('results').style.display = 'block';
+
+      // 余裕注記を更新
+      document.querySelector('.margin-note').innerHTML =
+        `ネジ山は${threadLength}mmで計算していますが、約${THREAD_MARGIN}mmの余裕を見込んでいます。<br>` +
+        `計算値より短いカタログ品でもネジ山余裕の範囲内なら使用可能な場合があります。`;
+
+      // サマリー
+      document.getElementById('summaryGrid').innerHTML = `
+        <div class="summary-item">
+          <div class="num">${outriggerQty + oppositeQty}</div>
+          <div class="label">ボルト合計</div>
+        </div>
+        <div class="summary-item">
+          <div class="num">${totalNuts}</div>
+          <div class="label">ナット</div>
+        </div>
+        <div class="summary-item">
+          <div class="num">${spacers}</div>
+          <div class="label">スペーサー</div>
+        </div>`;
+
+      // 計算過程
+      const craneModel = document.getElementById('craneModel').value || '-';
+      const chassis = document.getElementById('chassis').value || '-';
+
+      let calcText = `クレーン: ${craneModel} / シャシ: ${chassis} / M${boltDiameter}\n\n`;
+
+      calcText += `[アウトリガー側] ${outriggerType}ボルト x ${outriggerQty}本\n`;
+      if (outriggerType === 'I') {
+        calcText += `  ${frameToBase} + ${outriggerHeight} + ${threadLength} = ${outriggerBaseLength}mm (Uボルト相当)\n`;
+        calcText += `  ${outriggerBaseLength} + ${threadLength} = ${outriggerCalc}mm (Iボルト)\n`;
+      } else {
+        calcText += `  ${frameToBase} + ${outriggerHeight} + ${threadLength} = ${outriggerCalc}mm\n`;
+      }
+      calcText += `  ナット: ${outriggerQty} x 4 = ${outriggerNuts}個\n\n`;
+
+      calcText += `[反対側] ${oppositeType}ボルト x ${oppositeQty}本\n`;
+      if (oppositeType === 'I') {
+        calcText += `  ${frameToBase} + ${oppositeHeight} + ${threadLength} = ${oppositeBaseLength}mm (Uボルト相当)\n`;
+        calcText += `  ${oppositeBaseLength} + ${threadLength} = ${oppositeCalc}mm (Iボルト)\n`;
+      } else {
+        calcText += `  ${frameToBase} + ${oppositeHeight} + ${threadLength} = ${oppositeCalc}mm\n`;
+      }
+      calcText += `  ナット: ${oppositeQty} x 4 = ${oppositeNuts}個\n\n`;
+
+      calcText += `ナット合計: ${totalNuts}個 / スペーサー: ${spacers}個`;
+
+      document.getElementById('calcDetail').textContent = calcText;
+
+      // ===== 候補カード =====
+      let candidatesHTML = '';
+
+      // アウトリガー側
+      candidatesHTML += `<div class="side-result">`;
+      candidatesHTML += `<h3>アウトリガー側 - ${outriggerType}ボルト（計算値: ${outriggerCalc}mm）</h3>`;
+      candidatesHTML += `<div class="candidates">`;
+
+      if (outriggerCandidates.up && outriggerCandidates.down) {
+        // 2候補ある
+        candidatesHTML += renderCandidateCard(
+          outriggerCandidates.up, outriggerCalc, '安全策', 'safe', 'outrigger');
+        candidatesHTML += renderCandidateCard(
+          outriggerCandidates.down, outriggerCalc, '節約策', 'compact', 'outrigger');
+      } else if (outriggerCandidates.up) {
+        // 上のみ（ぴったりor計算値が小さい）
+        const diff = outriggerCandidates.up.length - outriggerCalc;
+        const tag = diff === 0 ? 'ぴったり' : 'おすすめ';
+        candidatesHTML += `<div class="single-candidate">`;
+        candidatesHTML += renderCandidateCard(
+          outriggerCandidates.up, outriggerCalc, tag, 'only', 'outrigger');
+        candidatesHTML += `</div>`;
+      } else if (outriggerCandidates.down) {
+        candidatesHTML += `<div class="single-candidate">`;
+        candidatesHTML += renderCandidateCard(
+          outriggerCandidates.down, outriggerCalc, 'カタログ最大', 'compact', 'outrigger');
+        candidatesHTML += `</div>`;
+      } else {
+        candidatesHTML += `<p style="color:var(--red)">該当するカタログ品が見つかりません（M${boltDiameter} ${outriggerType}ボルト）</p>`;
+      }
+
+      candidatesHTML += `</div></div>`;
+
+      // 反対側
+      candidatesHTML += `<div class="side-result">`;
+      candidatesHTML += `<h3>反対側 - ${oppositeType}ボルト（計算値: ${oppositeCalc}mm）</h3>`;
+      candidatesHTML += `<div class="candidates">`;
+
+      if (oppositeCandidates.up && oppositeCandidates.down) {
+        candidatesHTML += renderCandidateCard(
+          oppositeCandidates.up, oppositeCalc, '安全策', 'safe', 'opposite');
+        candidatesHTML += renderCandidateCard(
+          oppositeCandidates.down, oppositeCalc, '節約策', 'compact', 'opposite');
+      } else if (oppositeCandidates.up) {
+        const diff = oppositeCandidates.up.length - oppositeCalc;
+        const tag = diff === 0 ? 'ぴったり' : 'おすすめ';
+        candidatesHTML += `<div class="single-candidate">`;
+        candidatesHTML += renderCandidateCard(
+          oppositeCandidates.up, oppositeCalc, tag, 'only', 'opposite');
+        candidatesHTML += `</div>`;
+      } else if (oppositeCandidates.down) {
+        candidatesHTML += `<div class="single-candidate">`;
+        candidatesHTML += renderCandidateCard(
+          oppositeCandidates.down, oppositeCalc, 'カタログ最大', 'compact', 'opposite');
+        candidatesHTML += `</div>`;
+      } else {
+        candidatesHTML += `<p style="color:var(--red)">該当するカタログ品が見つかりません（M${boltDiameter} ${oppositeType}ボルト）</p>`;
+      }
+
+      candidatesHTML += `</div></div>`;
+
+      document.getElementById('candidatesArea').innerHTML = candidatesHTML;
+
+      // デフォルト選択のハイライト
+      if (selectedBolts.outrigger) {
+        const el = document.querySelector(`.candidate[data-side="outrigger"][data-length="${selectedBolts.outrigger.length}"]`);
+        if (el) el.classList.add('selected');
+      }
+      if (selectedBolts.opposite) {
+        const el = document.querySelector(`.candidate[data-side="opposite"][data-length="${selectedBolts.opposite.length}"]`);
+        if (el) el.classList.add('selected');
+      }
+
+      // 注文リスト
+      updateOrderList();
+
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateOrderList() {
+      const boltDiameter = parseInt(document.getElementById('boltDiameter').value);
+      const outriggerType = document.getElementById('outriggerBoltType').value;
+      const oppositeType = document.getElementById('oppositeBoltType').value;
+      const outriggerQty = parseInt(document.getElementById('outriggerQty').value);
+      const oppositeQty = parseInt(document.getElementById('oppositeQty').value);
+      const outriggerNuts = outriggerQty * 4;
+      const oppositeNuts = oppositeQty * 4;
+      const totalNuts = outriggerNuts + oppositeNuts;
+
+      const ob = selectedBolts.outrigger;
+      const opb = selectedBolts.opposite;
+
+      if (!ob || !opb) return;
+
+      let orderHTML = '';
+
+      // 同じボルトなら統合
+      if (ob.code === opb.code) {
+        orderHTML += `
+          <div class="order-item">
+            <div class="info">
+              <div class="name">${outriggerType}ボルト M${boltDiameter} x ${ob.length}</div>
+              <div class="spec">両側共通 / 品番: ${ob.code}</div>
+            </div>
+            <div class="qty">${outriggerQty + oppositeQty}本</div>
+          </div>`;
+      } else {
+        orderHTML += `
+          <div class="order-item">
+            <div class="info">
+              <div class="name">${outriggerType}ボルト M${boltDiameter} x ${ob.length}</div>
+              <div class="spec">アウトリガー側 / 品番: ${ob.code}</div>
+            </div>
+            <div class="qty">${outriggerQty}本</div>
+          </div>
+          <div class="order-item">
+            <div class="info">
+              <div class="name">${oppositeType}ボルト M${boltDiameter} x ${opb.length}</div>
+              <div class="spec">反対側 / 品番: ${opb.code}</div>
+            </div>
+            <div class="qty">${oppositeQty}本</div>
+          </div>`;
+      }
+
+      const nutCode = ACCESSORIES.nut[boltDiameter] || '';
+      const washerCode = ACCESSORIES.washer[boltDiameter] || '';
+
+      orderHTML += `
+        <div class="order-item">
+          <div class="info">
+            <div class="name">ナット M${boltDiameter}</div>
+            <div class="spec">全ボルト分${nutCode ? ' / 品番: ' + nutCode : ''}</div>
+          </div>
+          <div class="qty">${totalNuts}個</div>
+        </div>
+        <div class="order-item">
+          <div class="info">
+            <div class="name">角ワッシャ M${boltDiameter}</div>
+            <div class="spec">標準8箇所分${washerCode ? ' / 品番: ' + washerCode : ''}</div>
+          </div>
+          <div class="qty">8個</div>
+        </div>`;
+
+      document.getElementById('orderList').innerHTML = orderHTML;
+    }
+
+    function copyOrder() {
+      const calcDetail = document.getElementById('calcDetail').textContent;
+      const ob = selectedBolts.outrigger;
+      const opb = selectedBolts.opposite;
+      const outriggerType = document.getElementById('outriggerBoltType').value;
+      const oppositeType = document.getElementById('oppositeBoltType').value;
+      const outriggerQty = parseInt(document.getElementById('outriggerQty').value);
+      const oppositeQty = parseInt(document.getElementById('oppositeQty').value);
+      const boltDiameter = parseInt(document.getElementById('boltDiameter').value);
+      const totalNuts = (outriggerQty + oppositeQty) * 4;
+
+      let text = `=== クレーン取付ボルト注文 ===\n\n`;
+      text += calcDetail;
+      text += `\n\n--- 注文内容 ---\n`;
+
+      if (ob && opb) {
+        if (ob.code === opb.code) {
+          text += `${outriggerType}ボルト M${boltDiameter} x ${ob.length} (${ob.code}) x ${outriggerQty + oppositeQty}本\n`;
+        } else {
+          text += `${outriggerType}ボルト M${boltDiameter} x ${ob.length} (${ob.code}) x ${outriggerQty}本 [アウトリガー側]\n`;
+          text += `${oppositeType}ボルト M${boltDiameter} x ${opb.length} (${opb.code}) x ${oppositeQty}本 [反対側]\n`;
+        }
+        const nutCode = ACCESSORIES.nut[boltDiameter] || '';
+        const washerCode = ACCESSORIES.washer[boltDiameter] || '';
+        text += `ナット M${boltDiameter} (${nutCode}) x ${totalNuts}個\n`;
+        text += `角ワッシャ M${boltDiameter} (${washerCode}) x 8個\n`;
+      }
+
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'コピーしました';
+        setTimeout(() => { btn.textContent = '注文内容をコピー'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
