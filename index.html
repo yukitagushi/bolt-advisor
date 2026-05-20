@@ -493,6 +493,9 @@
     // ネジ山の余裕幅（この範囲内なら短いカタログ品も候補にできる）
     const THREAD_MARGIN = 30;
 
+    // 長さオフセット（実機検証の結果、全体的に200mm長すぎたため一律補正）
+    const LENGTH_OFFSET = -200;
+
     // ボルトカタログ（PDF「クレーン取付ボルト関係一覧」より）
     const BOLT_CATALOG = [
       // ===== M22 =====
@@ -665,13 +668,17 @@
       const outriggerBaseLength = frameToBase + outriggerHeight + threadLength;
       const oppositeBaseLength = frameToBase + oppositeHeight + threadLength;
 
-      const outriggerCalc = outriggerType === 'I'
+      const outriggerCalcRaw = outriggerType === 'I'
         ? outriggerBaseLength + threadLength
         : outriggerBaseLength;
 
-      const oppositeCalc = oppositeType === 'I'
+      const oppositeCalcRaw = oppositeType === 'I'
         ? oppositeBaseLength + threadLength
         : oppositeBaseLength;
+
+      // 一律オフセット補正
+      const outriggerCalc = outriggerCalcRaw + LENGTH_OFFSET;
+      const oppositeCalc = oppositeCalcRaw + LENGTH_OFFSET;
 
       // カタログから候補を検索
       const outriggerCandidates = findCandidates(outriggerType, boltDiameter, outriggerCalc);
@@ -716,22 +723,27 @@
 
       let calcText = `クレーン: ${craneModel} / シャシ: ${chassis} / M${boltDiameter}\n\n`;
 
+      const offsetSign = LENGTH_OFFSET >= 0 ? '+' : '-';
+      const offsetAbs = Math.abs(LENGTH_OFFSET);
+
       calcText += `[アウトリガー側] ${outriggerType}ボルト x ${outriggerQty}本\n`;
       if (outriggerType === 'I') {
         calcText += `  ${frameToBase} + ${outriggerHeight} + ${threadLength} = ${outriggerBaseLength}mm (Uボルト相当)\n`;
-        calcText += `  ${outriggerBaseLength} + ${threadLength} = ${outriggerCalc}mm (Iボルト)\n`;
+        calcText += `  ${outriggerBaseLength} + ${threadLength} = ${outriggerCalcRaw}mm (Iボルト)\n`;
       } else {
-        calcText += `  ${frameToBase} + ${outriggerHeight} + ${threadLength} = ${outriggerCalc}mm\n`;
+        calcText += `  ${frameToBase} + ${outriggerHeight} + ${threadLength} = ${outriggerCalcRaw}mm\n`;
       }
+      calcText += `  オフセット補正: ${outriggerCalcRaw} ${offsetSign} ${offsetAbs} = ${outriggerCalc}mm\n`;
       calcText += `  ナット: ${outriggerQty} x 4 = ${outriggerNuts}個\n\n`;
 
       calcText += `[反対側] ${oppositeType}ボルト x ${oppositeQty}本\n`;
       if (oppositeType === 'I') {
         calcText += `  ${frameToBase} + ${oppositeHeight} + ${threadLength} = ${oppositeBaseLength}mm (Uボルト相当)\n`;
-        calcText += `  ${oppositeBaseLength} + ${threadLength} = ${oppositeCalc}mm (Iボルト)\n`;
+        calcText += `  ${oppositeBaseLength} + ${threadLength} = ${oppositeCalcRaw}mm (Iボルト)\n`;
       } else {
-        calcText += `  ${frameToBase} + ${oppositeHeight} + ${threadLength} = ${oppositeCalc}mm\n`;
+        calcText += `  ${frameToBase} + ${oppositeHeight} + ${threadLength} = ${oppositeCalcRaw}mm\n`;
       }
+      calcText += `  オフセット補正: ${oppositeCalcRaw} ${offsetSign} ${offsetAbs} = ${oppositeCalc}mm\n`;
       calcText += `  ナット: ${oppositeQty} x 4 = ${oppositeNuts}個\n\n`;
 
       calcText += `ナット合計: ${totalNuts}個 / スペーサー: ${spacers}個`;
